@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pasture Predictions — Farm Intelligence Dashboard</title>
+<title>Pasture Prediction — Farm Intelligence Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -305,7 +305,7 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
 
 <header>
   <div style="display:flex;align-items:center;gap:32px">
-    <div class="logo">Pasture Predictions</div>
+    <div class="logo">Pasture Prediction</div>
     <nav style="display:flex;align-items:center;gap:4px">
       <button onclick="showTab('overview',this)" class="hdr-nav-btn active-nav" data-tab="overview">Overview</button>
       <button onclick="showTab('paddocks',this)" class="hdr-nav-btn" data-tab="paddocks">Paddocks</button>
@@ -374,8 +374,23 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
     </div>
 
     <div class="import-sep"></div>
-    <span id="importStatus" style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">—</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="importStatus" style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">—</span>
+      <button onclick="toggleDebug()" id="debugToggleBtn"
+        style="font-family:var(--font-mono);font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;white-space:nowrap;display:none">
+        🔍 Debug
+      </button>
+    </div>
   </div>
+</div>
+
+<!-- DEBUG PANEL — shows column detection for every sheet -->
+<div id="debugPanel" style="display:none;background:#1a1a18;border-bottom:2px solid var(--primary);padding:12px 24px;font-family:var(--font-mono);font-size:11px;color:#ccc;max-height:260px;overflow-y:auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="color:#4ade80;font-weight:700;font-size:12px">📋 Import Debug Log</span>
+    <button onclick="toggleDebug()" style="background:none;border:none;color:#888;cursor:pointer;font-size:13px">✕</button>
+  </div>
+  <div id="debugContent" style="display:flex;flex-direction:column;gap:10px"></div>
 </div>
 
 <!-- ── WEATHER LOCATION BAR ──────────────────────────────────────────────── -->
@@ -419,36 +434,44 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
   </div>
   <div id="overviewContent" style="display:none">
 
-    <!-- TODAY'S ACTIONS — full width -->
+    <!-- TODAY'S ACTIONS — 2 focused cards -->
     <div class="card full" style="margin-bottom:15px">
       <div class="card-hdr"><div class="card-title">Today's Recommended Actions</div><span class="badge bg">Live from DB</span></div>
-      <div id="suggestionsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px"></div>
+      <div id="suggestionsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px"></div>
     </div>
 
-    <!-- CHARTS 2×2 -->
-    <div class="g2">
+    <!-- ROW 1: Grass History + 7-Day Forecast side by side -->
+    <div class="g2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-hdr"><div class="card-title">Grass Height — All Paddocks, 14-Day History</div>
           <div class="legend" id="grassLegend"></div></div>
-        <div style="position:relative;height:210px"><canvas id="grassMulti"></canvas></div>
+        <div style="position:relative;height:280px"><canvas id="grassMulti"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-hdr"><div class="card-title">Temperature & Precipitation</div>
-          <div class="legend"><div class="leg"><div class="lsq" style="background:#b5600a"></div>Temp °F</div><div class="leg"><div class="lsq" style="background:#1a5c7a"></div>Precip in</div></div>
-        </div>
-        <div style="position:relative;height:210px"><canvas id="weatherChart"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title">Paddock Grass Height Snapshot</div><div class="badge bg" id="paddockCountBadge">— paddocks</div></div>
-        <div style="position:relative;height:210px"><canvas id="paddockBar"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title">Weather Forecast</div><div class="badge bs" id="forecastBadge">7 days</div></div>
-        <div id="forecastStrip" class="forecast-wrap" style="margin-top:4px">
-          <div style="color:var(--muted);font-family:var(--font-mono);font-size:11px;padding:20px 0">Load XLSX with Weather sheet or fetch live weather above</div>
-        </div>
+        <div class="card-hdr"><div class="card-title">7-Day Grass Height Forecast</div><div class="badge bg" id="predBadge">growth model</div></div>
+        <div id="predLegend" class="legend" style="margin-bottom:6px"></div>
+        <div style="position:relative;height:280px"><canvas id="predChart"></canvas></div>
       </div>
     </div>
+
+    <!-- ROW 2: Paddock Snapshot + Rotation Readiness side by side -->
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-hdr"><div class="card-title">Paddock Grass Height Snapshot</div><div class="badge bg" id="paddockCountBadge">— paddocks</div></div>
+        <div style="position:relative;height:280px"><canvas id="paddockBar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><div class="card-title">Rotation Readiness — Days Until Ready</div><div class="badge ba">30-day rest target</div></div>
+        <div style="position:relative;height:260px"><canvas id="rotChart"></canvas></div>
+        <div id="rotKey" style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"></div>
+      </div>
+    </div>
+
+    <!-- hidden canvas — keeps weatherChart JS from crashing -->
+    <canvas id="weatherChart" style="display:none;width:0;height:0"></canvas>
+    <!-- hidden forecast elements for live weather path -->
+    <div id="forecastBadge" style="display:none"></div>
+    <div id="forecastStrip" style="display:none"></div>
 
     <!-- LIVE WEATHER + AERIAL MAP -->
     <div class="g2" id="wxLiveRow" style="display:none">
@@ -502,14 +525,32 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
       </tr></thead>
       <tbody id="paddockTbody"></tbody></table>
     </div>
-    <div class="g2">
-      <div class="card">
-        <div class="card-hdr"><div class="card-title">7-Day Grass Height Forecast</div><div class="badge bg">+0.47 in/day growth model</div></div>
-        <div style="position:relative;height:230px"><canvas id="predChart"></canvas></div>
+    <div class="card full" style="margin-bottom:15px">
+      <div class="card-hdr">
+        <div class="card-title">Herd Movement Map — Optimal Rotation Paths</div>
+        <div class="badge bg" id="moveBadge">—</div>
       </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title">Rotation Readiness — Days Until Ready</div><div class="badge ba">30-day rest target</div></div>
-        <div style="position:relative;height:230px"><canvas id="rotChart"></canvas></div>
+      <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:14px">Arrows show the recommended path: move cows <strong>from</strong> low-grass paddocks <strong>to</strong> the nearest high-grass paddock. Circle size = acres. Colour = grass height.</p>
+      <div style="display:grid;grid-template-columns:1fr 260px;gap:20px;align-items:start">
+        <div>
+          <canvas id="moveMapCanvas" style="width:100%;border-radius:10px;background:#1c2218;display:block"></canvas>
+        </div>
+        <div>
+          <div style="font-family:var(--font-display);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Suggested Moves</div>
+          <div id="moveSuggestions" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div style="margin-top:16px">
+            <div style="font-family:var(--font-display);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px">Legend</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-family:var(--font-mono);font-size:10px;color:var(--muted)">
+              <div style="display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#e84040;flex-shrink:0"></span>Low grass (&lt;1.5in) — move out</div>
+              <div style="display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#b5600a;flex-shrink:0"></span>Short (1.5–2.5in) — recovering</div>
+              <div style="display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#c9a900;flex-shrink:0"></span>Growing (2.5–3.5in) — nearly ready</div>
+              <div style="display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#3d6b2e;flex-shrink:0"></span>Optimal (3.5–6in) — move in</div>
+              <div style="display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#1a5c7a;flex-shrink:0"></span>Tall (&gt;6in) — graze urgently</div>
+              <div style="display:flex;align-items:center;gap:7px;margin-top:4px"><span style="display:inline-block;width:26px;height:3px;background:rgba(255,210,80,0.9);border-radius:2px;flex-shrink:0"></span>Recommended move path</div>
+              <div style="display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:26px;height:2px;background:rgba(255,255,255,0.15);border-radius:2px;flex-shrink:0;border-top:1px dashed rgba(255,255,255,0.2)"></span>Nearby paddock (no move needed)</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -550,9 +591,10 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
       <div class="fm-map-card">
         <div class="fm-toolbar">
           <label class="fm-tool-btn" for="fmImageUpload" title="Upload aerial image of your farm">
-            📷 <span>Upload Aerial Image</span>
+            📷 <span>Upload Image</span>
             <input type="file" id="fmImageUpload" accept="image/*" style="display:none" onchange="fmLoadImage(this)">
           </label>
+          <button class="fm-tool-btn" onclick="showOsmPanel()" title="Load OpenStreetMap terrain map by address">🗺️ <span>Load Map</span></button>
           <div class="fm-sep"></div>
           <button class="fm-tool-btn active" id="fmDrawBtn" onclick="fmSetMode('draw')" title="Click to place polygon corners, double-click to close">✏️ Draw Paddock</button>
           <button class="fm-tool-btn" id="fmSelectBtn" onclick="fmSetMode('select')" title="Click a paddock to select and edit it">☞ Select</button>
@@ -564,17 +606,35 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
           <div class="fm-sep"></div>
           <button class="fm-tool-btn danger" onclick="fmUndoPoint()" title="Undo last point while drawing">↩ Undo</button>
           <button class="fm-tool-btn danger" onclick="fmCancelDraw()" title="Cancel current polygon">✕ Cancel</button>
-          <div class="fm-hint" id="fmHint">Upload an image, then draw paddock polygons</div>
+          <div class="fm-hint" id="fmHint">Load a map or upload an image, then draw paddock polygons</div>
+        </div>
+
+        <!-- OSM address panel -->
+        <div id="osmPanel" style="display:none;background:var(--surface);padding:9px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-family:var(--font-display);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">Location</span>
+            <input id="osmAddress" type="text" placeholder="City, Country  e.g. Charlottesville, US"
+              style="font-family:var(--font-mono);font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);flex:1;min-width:200px;outline:none"
+              onkeydown="if(event.key==='Enter') loadOsmMap()">
+            <select id="osmZoom" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);outline:none">
+              <option value="15">Neighbourhood</option>
+              <option value="16" selected>Farm Scale</option>
+              <option value="17">Close up</option>
+            </select>
+            <button onclick="loadOsmMap()" style="font-family:var(--font-display);font-size:11px;font-weight:700;padding:5px 14px;border-radius:8px;border:none;background:var(--primary);color:#fff;cursor:pointer;white-space:nowrap">Load ↻</button>
+            <span id="osmStatus" style="font-family:var(--font-mono);font-size:10px;color:var(--muted)"></span>
+          </div>
         </div>
         <div class="fm-canvas-wrap" id="fmWrap">
           <img id="fmBg" src="" alt="" style="display:none">
           <canvas id="fmCanvas"></canvas>
           <div class="fm-upload-prompt" id="fmUploadPrompt">
             <div class="fm-upload-icon">🛰️</div>
-            <h3>Add your aerial image</h3>
-            <p>Upload a satellite or drone photo of your farm<br>then draw paddock boundaries on top</p>
-            <div class="fm-upload-btn-wrap">
-              <label for="fmImageUpload" class="fm-upload-cta">Upload Image</label>
+            <h3>Add a map or image</h3>
+            <p>Load an OpenStreetMap terrain map by address,<br>or upload your own aerial/satellite photo</p>
+            <div class="fm-upload-btn-wrap" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;pointer-events:all">
+              <button onclick="showOsmPanel()" class="fm-upload-cta" style="background:linear-gradient(135deg,#1a5c7a,#0d3d52)">🗺️ Load OSM Map</button>
+              <label for="fmImageUpload" class="fm-upload-cta">📷 Upload Image</label>
             </div>
           </div>
         </div>
@@ -667,6 +727,52 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
 
       <!-- Legend -->
       <div class="fm-info-card">
+        <div class="fm-info-title">Add Paddock Data</div>
+        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.6">Enter measurements manually or import from a spreadsheet. Matched to drawn paddocks by name.</p>
+
+        <!-- toggle -->
+        <div style="display:flex;gap:5px;background:var(--surface-high);border-radius:999px;padding:3px;margin-bottom:12px">
+          <button id="fmEntryManualBtn" onclick="fmShowEntry('manual')" style="flex:1;padding:5px 0;border-radius:999px;border:none;background:var(--primary);color:#fff;font-family:var(--font-display);font-size:11px;font-weight:700;cursor:pointer">Manual</button>
+          <button id="fmEntrySheetBtn" onclick="fmShowEntry('sheet')" style="flex:1;padding:5px 0;border-radius:999px;border:none;background:none;color:var(--muted);font-family:var(--font-display);font-size:11px;font-weight:700;cursor:pointer">Spreadsheet</button>
+        </div>
+
+        <!-- manual entry -->
+        <div id="fmEntryManual">
+          <div class="fm-field"><label>Paddock Name <span style="color:var(--red)">*</span></label><input class="fm-input" id="fmEntryName" placeholder="Must match drawn paddock name"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="fm-field"><label>Grass height (in)</label><input class="fm-input" id="fmEntryGrass" type="number" step="0.1" placeholder="0.0"></div>
+            <div class="fm-field"><label>Soil moisture (%)</label><input class="fm-input" id="fmEntryMoisture" type="number" placeholder="0"></div>
+            <div class="fm-field"><label>Acres</label><input class="fm-input" id="fmEntryAcres" type="number" step="0.1" placeholder="0.0"></div>
+            <div class="fm-field"><label>Days rested</label><input class="fm-input" id="fmEntryDaysRested" type="number" placeholder="0"></div>
+          </div>
+          <div class="fm-field"><label>Status</label>
+            <select class="fm-select" id="fmEntryStatus">
+              <option value="ready">Ready to graze</option>
+              <option value="grazing">Currently grazing</option>
+              <option value="resting">Resting</option>
+              <option value="hay">Hay reserve</option>
+            </select>
+          </div>
+          <div class="fm-field"><label>Breed / Animal type</label><input class="fm-input" id="fmEntryBreed" placeholder="e.g. Angus, Mixed"></div>
+          <div id="fmEntryErr" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--red);margin-bottom:8px"></div>
+          <button class="fm-save-btn" onclick="fmApplyManualEntry()">Apply to Paddock</button>
+        </div>
+
+        <!-- spreadsheet import -->
+        <div id="fmEntrySheet" style="display:none">
+          <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.7">Upload CSV or XLSX with columns: <strong>name, grass, moisture, acres, days_rested, status, breed</strong>. Rows matched to drawn paddocks by name.</p>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 14px;border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow-sm);margin-bottom:8px" for="fmSheetInput">
+            <input type="file" id="fmSheetInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="fmImportSheet(this)">
+            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:999px;font-weight:700;background:rgba(0,110,40,0.09);color:var(--accent)">CSV</span>
+            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:999px;font-weight:700;background:rgba(121,87,63,0.09);color:var(--secondary)">XLSX</span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Choose paddock data file</span>
+          </label>
+          <div id="fmSheetStatus" style="font-family:var(--font-mono);font-size:10px;color:var(--muted);min-height:16px"></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="fm-info-card" id="fmLegendCard">
         <div class="fm-info-title">Status Legend</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;align-items:center;gap:9px"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(61,107,46,0.55);border:2px solid #3d6b2e;flex-shrink:0"></span><span style="font-family:var(--font-mono);font-size:11px;color:var(--text)">Ready to graze</span></div>
@@ -727,23 +833,23 @@ header{background:var(--bg);padding:0 36px;display:flex;align-items:center;justi
       <div class="farm-field-row single">
         <div class="farm-field">
           <label>Farm Name</label>
-          <input class="farm-input" id="farmName" placeholder="e.g. Home Farm, North Property">
+          <input class="farm-input" id="farmName" placeholder="Farm Name">
         </div>
       </div>
       <div class="farm-field-row single">
         <div class="farm-field">
           <label>Street Address</label>
-          <input class="farm-input" id="farmStreet" placeholder="e.g. 185 Vaughan Dr">
+          <input class="farm-input" id="farmStreet" placeholder="Street Address">
         </div>
       </div>
       <div class="farm-field-row">
         <div class="farm-field">
           <label>City</label>
-          <input class="farm-input" id="farmCity" placeholder="e.g. Charlottesville">
+          <input class="farm-input" id="farmCity" placeholder="City">
         </div>
         <div class="farm-field">
           <label>State</label>
-          <input class="farm-input" id="farmState" placeholder="e.g. VA">
+          <input class="farm-input" id="farmState" placeholder="State">
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -845,128 +951,274 @@ async function handleUpload(input, importType){
 }
 
 async function doUpload(arrayBuffer, filename, importType, farmId){
+
   // ── Try backend first ──────────────────────────────────────────────────────
   try{
-    const headers = {
-      'Content-Type': 'application/octet-stream',
-      'X-Filename': filename,
-      'X-Import-Type': importType || 'auto',
+    const headers={
+      'Content-Type':'application/octet-stream',
+      'X-Filename':filename,
+      'X-Import-Type':importType||'auto',
     };
-    if(farmId) headers['X-Farm-Id'] = String(farmId);
-    const r = await fetch(apiBase()+'/import/upload', {
-      method: 'POST',
-      headers,
-      body: arrayBuffer,
-    });
+    if(farmId) headers['X-Farm-Id']=String(farmId);
+    const r=await fetch(apiBase()+'/import/upload',{method:'POST',headers,body:arrayBuffer});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'HTTP '+r.status);}
     const d=await r.json();
     const parts=Object.entries(d.sheets||{}).map(([k,v])=>k+' '+v.upserted+'\u2191');
     setStatus('\u2713 '+filename+' \u2014 '+parts.join(', '),'var(--accent)');
     await loadFromBackend();
     return;
-  }catch(backendErr){
-    // Backend offline or unreachable — fall through to client-side parse
+  }catch(backendErr){ /* backend offline — fall through to client parse */ }
+
+  // ── Client-side SheetJS parse ──────────────────────────────────────────────
+  const debugBlocks=[];   // collects per-sheet HTML for the debug panel
+
+  function debugBlock(sheetName, type, rows, headers, matched, skipped){
+    const statusColor={grass:'#4ade80',cow:'#60a5fa',weather:'#fbbf24',unknown:'#f87171'}[type]||'#888';
+    const matchedRows=matched.filter(Boolean).length;
+    return `<div style="border:1px solid #333;border-radius:6px;padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="color:${statusColor};font-weight:700">${sheetName}</span>
+        <span style="background:${statusColor}22;color:${statusColor};padding:1px 7px;border-radius:999px;font-size:10px">${type}</span>
+        <span style="color:#888">${rows} rows · ${headers.length} columns</span>
+        <span style="color:#4ade80;margin-left:auto">${matchedRows} records imported</span>
+        ${skipped>0?`<span style="color:#f87171">${skipped} skipped (no name/tag)</span>`:''}
+      </div>
+      <div style="color:#666;font-size:10px;margin-bottom:4px">Columns detected:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${headers.map(h=>`<span style="background:#2a2a28;padding:2px 8px;border-radius:4px;font-size:10px;color:#aaa">${h}</span>`).join('')}
+      </div>
+      ${matched.length?`<div style="margin-top:6px;color:#666;font-size:10px">Mapped fields: <span style="color:#888">${matched.filter(Boolean).join(', ')}</span></div>`:''}
+    </div>`;
   }
 
-  // ── Client-side fallback using SheetJS ────────────────────────────────────
   try{
-    setStatus('\u23f3 Parsing '+filename+' locally\u2026','var(--sky)');
-    const workbook = XLSX.read(arrayBuffer, {type:'array'});
+    setStatus('\u23f3 Parsing '+filename+'\u2026','var(--sky)');
+    const wb=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    if(!wb.SheetNames.length) throw new Error('File has no sheets');
 
-    // Column aliases → STATE field names
-    const COL_GRASS = {
-      name:['name','paddock_name','paddock'],
-      acres:['acres','area_ac','area'],
-      status:['status'],
-      breed:['breed','assigned_breed'],
-      grass:['grass','grass_height_cm','grass height (cm)','grass_cm'],
-      moisture:['moisture','soil_moisture_pct','soil moisture (%)','soil_moisture'],
-      temp:['temp','temperature_c','air_temp_c','temperature (°c)'],
-    };
-    const COL_COW = {
-      name:['name'],tag:['tag','tag_number','tag number'],
-      status:['status'],sex:['sex'],breed:['breed'],
-      weight:['weight','weight_lb','weight (lb)'],
-      height:['height','height_in','height (in)'],
-      bcs:['bcs','condition score (bcs)','body_condition_score'],
-      paddock:['paddock','paddock_name'],
-      birthDate:['birthdate','birth_date','date of birth'],
-      dam:['dam'],sire:['sire'],notes:['notes'],
-    };
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function clean(v){
+      if(v===null||v===undefined) return '';
+      if(v instanceof Date) return v.toISOString().substring(0,10);
+      return String(v).trim();
+    }
+
     function pick(row, aliases){
-      const lrow = {};
-      for(const k of Object.keys(row)) lrow[k.toLowerCase().trim()] = row[k];
+      const lrow={};
+      for(const k of Object.keys(row)) lrow[k.toLowerCase().trim()]=row[k];
       for(const a of aliases){
-        const v = lrow[a.toLowerCase()];
-        if(v !== undefined && v !== null && v !== '') return String(v).trim();
+        const v=lrow[a.toLowerCase()];
+        const s=clean(v);
+        if(s!=='') return s;
       }
       return '';
     }
 
-    function sheetToRows(ws){
-      return XLSX.utils.sheet_to_json(ws, {defval:''});
+    // Which aliases actually matched — for debug display
+    function pickedField(row, aliases){
+      const lrow={};
+      for(const k of Object.keys(row)) lrow[k.toLowerCase().trim()]=k;
+      for(const a of aliases){
+        if(lrow[a.toLowerCase()]!==undefined){
+          const val=row[lrow[a.toLowerCase()]];
+          if(clean(val)!=='') return a+'='+clean(val).substring(0,12);
+        }
+      }
+      return null;
     }
 
-    let paddocksLoaded=0, animalsLoaded=0;
+    // ── Column aliases ────────────────────────────────────────────────────────
+    const COL_GRASS={
+      name:      ['name','paddock_name','paddock','paddock name','field','field_name'],
+      acres:     ['acres','area_ac','area','area (ac)','size','size_ac'],
+      status:    ['status','state','condition'],
+      breed:     ['breed','assigned_breed','stock','stock_type'],
+      grass:     ['grass','grass_height_in','grass (in)','grass_height','height_in',
+                  'grass_height_cm','grass height (cm)','grass_cm','grass height',
+                  'sward_height','sward height','plate_height','pasture_height'],
+      moisture:  ['moisture','soil_moisture','soil_moisture_pct','soil moisture (%)',
+                  'moisture_pct','soil moisture','swc','vwc'],
+      temp:      ['temp','temperature','temperature_c','air_temp_c','temperature (°c)',
+                  'temperature_f','air_temp_f','temp_f','air_temperature'],
+      daysRested:['days_rested','daysrested','rest','days rested','rest_days',
+                  'days_since_grazing','days since grazing','rest period'],
+    };
+    const COL_COW={
+      name:      ['name','animal_name','animal name','animal','cow_name','cow name'],
+      tag:       ['tag','tag_number','tag number','tag #','ear_tag','ear tag','id'],
+      status:    ['status','health_status','health'],
+      sex:       ['sex','gender'],
+      breed:     ['breed','breed_type'],
+      weight:    ['weight','weight_lb','weight (lb)','weight_lbs','live_weight','liveweight'],
+      height:    ['height','height_in','height (in)','hip_height'],
+      bcs:       ['bcs','body_condition_score','condition score (bcs)','body condition',
+                  'body_condition','condition_score'],
+      paddock:   ['paddock','paddock_name','paddock name','location','field','current_paddock'],
+      birthDate: ['birthdate','birth_date','date of birth','dob','born','calving_date'],
+      dam:       ['dam','mother','dam_id'],
+      sire:      ['sire','father','bull','sire_id'],
+      notes:     ['notes','note','comments','remarks'],
+    };
+    const COL_WEATHER={
+      date:     ['record_date','date','day','timestamp'],
+      temp:     ['temperature_c','temp_c','temperature','temp','temperature_f','temp_f'],
+      precip:   ['precipitation_mm','precip_mm','precipitation','precip','rain_mm','rainfall'],
+      wind:     ['wind_ms','wind_speed','wind','wind_speed_ms'],
+      humidity: ['humidity_pct','humidity','rh'],
+      note:     ['description','note','condition','weather','summary'],
+    };
 
-    for(const sheetName of workbook.SheetNames){
-      const key = sheetName.toLowerCase().trim();
-      const rows = sheetToRows(workbook.Sheets[sheetName]);
-      if(!rows.length) continue;
+    // ── Sheet type detection ──────────────────────────────────────────────────
+    // Score columns: unique identifiers weighted higher, common words excluded
+    function detectSheetType(headers){
+      const lh=headers.map(h=>(h||'').toLowerCase().trim());
+      // Grass-specific columns (avoid 'name' — too generic)
+      const grassHits=['acres','grass','moisture','sward','paddock','pasture','soil_moisture','pgr','plate']
+        .filter(k=>lh.some(h=>h===k||h.startsWith(k+'_')||h.includes('_'+k)));
+      // Cow-specific columns
+      const cowHits=['tag','sex','bcs','breed','weight','sire','dam','ear','calving','liveweight']
+        .filter(k=>lh.some(h=>h===k||h.startsWith(k+'_')||h.includes('_'+k)));
+      // Weather-specific columns
+      const wxHits=['precipitation','rainfall','precip','humidity','wind_speed','temp_c','temp_f']
+        .filter(k=>lh.some(h=>h===k||h.startsWith(k)||h.includes(k)));
 
-      const isCow   = importType==='cow'   || ['animal','cow'].some(k=>key.includes(k));
-      const isGrass = importType==='grass' || ['paddock','grass','field','sensor'].some(k=>key.includes(k));
+      if(grassHits.length===0&&cowHits.length===0&&wxHits.length===0) return{type:'unknown',grassHits,cowHits,wxHits};
+      if(grassHits.length>=cowHits.length&&grassHits.length>=wxHits.length) return{type:'grass',grassHits,cowHits,wxHits};
+      if(cowHits.length>grassHits.length&&cowHits.length>=wxHits.length)    return{type:'cow',grassHits,cowHits,wxHits};
+      return{type:'weather',grassHits,cowHits,wxHits};
+    }
 
-      if(isCow && !isGrass){
-        // Animal sheet
-        const animals = rows.map(r=>({
-          name:      pick(r, COL_COW.name),
-          tag:       pick(r, COL_COW.tag),
+    function resolveSheetType(sheetName, headers, importType){
+      const key=sheetName.toLowerCase().trim();
+      // Sheet name is the strongest signal
+      if(['animal','cow','herd','cattle','livestock'].some(k=>key.includes(k))) return 'cow';
+      if(['paddock','grass','field','sensor','pasture','sward'].some(k=>key.includes(k))) return 'grass';
+      if(['weather','forecast','climate','wx','rain'].some(k=>key.includes(k))) return 'weather';
+      if(['fieldmap','field_map','map','rotation'].some(k=>key.includes(k))) return 'grass';
+      // Fall back to header detection
+      const{type:detected}=detectSheetType(headers);
+      if(detected!=='unknown') return detected;
+      // Last resort: trust the import button the user clicked
+      return importType||'grass';
+    }
+
+    // ── Process each sheet ────────────────────────────────────────────────────
+    let paddocksLoaded=0, animalsLoaded=0, weatherLoaded=0;
+
+    for(const sheetName of wb.SheetNames){
+      const ws=wb.Sheets[sheetName];
+      if(!ws){debugBlocks.push(debugBlock(sheetName,'unknown',0,[],[],0));continue;}
+
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
+      if(!rows.length){debugBlocks.push(debugBlock(sheetName,'empty',0,[],[],0));continue;}
+
+      const headers=Object.keys(rows[0]);
+      const type=resolveSheetType(sheetName, headers, importType);
+
+      if(type==='cow'){
+        const animals=rows.map(r=>({
+          name:      pick(r,COL_COW.name),
+          tag:       pick(r,COL_COW.tag),
           animalType:'Cattle',
-          status:    pick(r, COL_COW.status)||'Active',
-          sex:       pick(r, COL_COW.sex),
-          breed:     pick(r, COL_COW.breed),
-          weight:    parseFloat(pick(r, COL_COW.weight))||0,
-          height:    parseFloat(pick(r, COL_COW.height))||0,
-          bcs:       parseFloat(pick(r, COL_COW.bcs))||0,
-          paddock:   pick(r, COL_COW.paddock),
-          birthDate: pick(r, COL_COW.birthDate),
-          dam:       pick(r, COL_COW.dam),
-          sire:      pick(r, COL_COW.sire),
-          notes:     pick(r, COL_COW.notes),
-        })).filter(a=>a.name||a.tag);
-        if(animals.length){ STATE.animals = animals; animalsLoaded += animals.length; }
+          status:    pick(r,COL_COW.status)||'Active',
+          sex:       pick(r,COL_COW.sex),
+          breed:     pick(r,COL_COW.breed),
+          weight:    parseFloat(pick(r,COL_COW.weight))||0,
+          height:    parseFloat(pick(r,COL_COW.height))||0,
+          bcs:       parseFloat(pick(r,COL_COW.bcs))||0,
+          paddock:   pick(r,COL_COW.paddock),
+          birthDate: pick(r,COL_COW.birthDate),
+          dam:       pick(r,COL_COW.dam),
+          sire:      pick(r,COL_COW.sire),
+          notes:     pick(r,COL_COW.notes),
+          farmName:  '',
+        }));
+        const valid=animals.filter(a=>a.name||a.tag);
+        const skipped=animals.length-valid.length;
+        if(valid.length){
+          const newNames=new Set(valid.map(a=>a.name.toLowerCase()));
+          const kept=STATE.animals.filter(a=>!newNames.has((a.name||'').toLowerCase()));
+          STATE.animals=[...kept,...valid];
+          animalsLoaded+=valid.length;
+        }
+        // Debug: show which fields matched on first row
+        const sampleMatched=valid.length?Object.keys(COL_COW).map(f=>pickedField(rows[0],COL_COW[f])?f+': '+pickedField(rows[0],COL_COW[f]):null):[];
+        debugBlocks.push(debugBlock(sheetName,'cow',rows.length,headers,sampleMatched,skipped));
 
-      } else {
-        // Paddock/grass sheet
-        const paddocks = rows.map(r=>({
-          id:       (pick(r, COL_GRASS.name)||'?').toUpperCase().replace(/\s+/g,'_').substring(0,1),
-          name:     pick(r, COL_GRASS.name),
-          acres:    parseFloat(pick(r, COL_GRASS.acres))||0,
-          status:   (pick(r, COL_GRASS.status)||'ready').toLowerCase(),
-          breed:    pick(r, COL_GRASS.breed),
-          grass:    parseFloat(pick(r, COL_GRASS.grass))||0,
-          moisture: parseFloat(pick(r, COL_GRASS.moisture))||0,
-          temp:     parseFloat(pick(r, COL_GRASS.temp))||0,
-          restLeft: 0, daysSince: 0, pgr: 0, timestamp: '',
-        })).filter(p=>p.name);
-        if(paddocks.length){ STATE.paddocks = paddocks; paddocksLoaded += paddocks.length; }
+      }else if(type==='grass'){
+        const paddocks=rows.map(r=>{
+          const rawGrass=parseFloat(pick(r,COL_GRASS.grass))||0;
+          const grass=rawGrass>20?+(rawGrass/2.54).toFixed(2):rawGrass;
+          const rawTemp=parseFloat(pick(r,COL_GRASS.temp))||0;
+          const temp=(rawTemp>0&&rawTemp<50)?+(rawTemp*9/5+32).toFixed(1):rawTemp;
+          return{
+            id:        (pick(r,COL_GRASS.name)||'?').toUpperCase().replace(/\s+/g,'_').substring(0,1),
+            name:       pick(r,COL_GRASS.name),
+            acres:      parseFloat(pick(r,COL_GRASS.acres))||0,
+            status:    (pick(r,COL_GRASS.status)||'ready').toLowerCase().trim(),
+            breed:      pick(r,COL_GRASS.breed),
+            grass, moisture:parseFloat(pick(r,COL_GRASS.moisture))||0,
+            temp,  daysRested:parseInt(pick(r,COL_GRASS.daysRested))||0,
+            restLeft:0,daysSince:0,pgr:0,timestamp:'',soilDrainage:2,grassSpecies:0,
+          };
+        });
+        const valid=paddocks.filter(p=>p.name);
+        const skipped=paddocks.length-valid.length;
+        if(valid.length){
+          const map=new Map(STATE.paddocks.map(p=>[p.name.toLowerCase(),p]));
+          valid.forEach(p=>{map.set(p.name.toLowerCase(),{...(map.get(p.name.toLowerCase())||{}),...p});});
+          STATE.paddocks=[...map.values()];
+          paddocksLoaded+=valid.length;
+        }
+        const sampleMatched=valid.length?Object.keys(COL_GRASS).map(f=>pickedField(rows[0],COL_GRASS[f])?f+': '+pickedField(rows[0],COL_GRASS[f]):null):[];
+        debugBlocks.push(debugBlock(sheetName,'grass',rows.length,headers,sampleMatched,skipped));
+
+      }else if(type==='weather'){
+        const wrows=rows.map(r=>({
+          date:     pick(r,COL_WEATHER.date),
+          temp:     parseFloat(pick(r,COL_WEATHER.temp))||0,
+          precip:   parseFloat(pick(r,COL_WEATHER.precip))||0,
+          wind:     parseFloat(pick(r,COL_WEATHER.wind))||0,
+          humidity: parseFloat(pick(r,COL_WEATHER.humidity))||0,
+          note:     pick(r,COL_WEATHER.note)||'',
+        })).filter(w=>w.date);
+        if(wrows.length){STATE.weather=wrows;weatherLoaded+=wrows.length;}
+        debugBlocks.push(debugBlock(sheetName,'weather',rows.length,headers,[],0));
+
+      }else{
+        debugBlocks.push(debugBlock(sheetName,'unknown',rows.length,headers,[],0));
       }
     }
 
-    const parts = [
-      paddocksLoaded ? paddocksLoaded+' paddocks' : '',
-      animalsLoaded  ? animalsLoaded+' animals'   : '',
+    // Show debug panel
+    document.getElementById('debugContent').innerHTML=debugBlocks.join('');
+    document.getElementById('debugToggleBtn').style.display='inline-block';
+
+    const parts=[
+      paddocksLoaded?paddocksLoaded+' paddock'+(paddocksLoaded>1?'s':''):'',
+      animalsLoaded ?animalsLoaded+' animal'+(animalsLoaded>1?'s':''):'',
+      weatherLoaded ?weatherLoaded+' weather rows':'',
     ].filter(Boolean);
 
-    if(!parts.length) throw new Error('No recognisable data found in '+filename);
+    if(!parts.length){
+      document.getElementById('debugPanel').style.display='block';
+      throw new Error('No data recognised in '+filename+'. Click 🔍 Debug to see what was detected.');
+    }
 
-    STATE.loaded = true;
-    setStatus('\u2713 '+filename+' (local) \u2014 '+parts.join(', '),'var(--accent)');
+    STATE.loaded=true;
+    setStatus('\u2713 '+filename+' \u2014 '+parts.join(', '),'var(--accent)');
     renderAll();
-    }catch(e){
-    setStatus('\u2717 Upload failed: '+e.message,'var(--red)');
+
+  }catch(e){
+    setStatus('\u2717 '+e.message,'var(--red)');
+    document.getElementById('debugToggleBtn').style.display='inline-block';
+    console.error('doUpload:',e);
   }
+}
+
+function toggleDebug(){
+  const p=document.getElementById('debugPanel');
+  p.style.display=p.style.display==='none'?'block':'none';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1445,24 +1697,82 @@ function renderOverview(){
   document.getElementById('overviewContent').style.display='block';
   document.getElementById('paddockCountBadge').textContent=p.length+' paddocks';
 
-  // Suggestions
-  const readyP=p.filter(x=>x.status==='ready');
-  const restingP=p.filter(x=>x.status==='resting');
-  const dryP=p.filter(x=>x.moisture<25);
-  const hist=w.filter(x=>!x.note.includes('forecast'));
-  const lastW=hist.length?hist[hist.length-1]:null;
-  const suggs=[];
-  if(readyP.length) suggs.push({ico:'🌱',body:`Move herd to <strong>${readyP.map(x=>x.name||x.id).join(', ')}</strong> — grass at ${readyP[0].grass}in, optimal grazing window.`,sub:readyP.length+' paddock(s) ready'});
-  if(restingP.length) suggs.push({ico:'🔄',body:`Keep <strong>${restingP.map(x=>x.name||x.id).join(', ')}</strong> resting — below 2.4in target entry height.`,sub:'Allow 28–32 more days per USDA cool-season protocol'});
-  if(dryP.length) suggs.push({ico:'💧',body:`<strong>${dryP.map(x=>x.name||x.id).join(', ')}</strong> moisture below 25% — monitor closely.`,sub:'Irrigation threshold: below 20%'});
-  if(lastW) suggs.push({ico:'🌡️',body:`<strong>${lastW.temp}°F</strong> is ${lastW.temp>=12&&lastW.temp<=18?'near-ideal':'outside ideal range'} for cool-season grass growth.`,sub:'Growth rate peaks 54–64°F for ryegrass & fescue'});
-  if(!suggs.length) suggs.push({ico:'✅',body:'All paddocks in good condition.',sub:'No urgent actions required'});
-  document.getElementById('suggestionsGrid').innerHTML=suggs.map(s=>`<div class="sug"><div class="sug-ico">${s.ico}</div><div><div class="sug-body">${s.body}</div><div class="sug-sub">${s.sub}</div></div></div>`).join('');
+  // ── 2 focused action cards ──────────────────────────────────────────────────
+  // Priority 1: best move opportunity (most ready paddock)
+  // Priority 2: biggest risk (lowest moisture OR most overgrown resting paddock)
+  const readyP  = p.filter(x=>x.status==='ready').sort((a,b)=>b.grass-a.grass);
+  const restingP = p.filter(x=>x.status==='resting').sort((a,b)=>a.grass-b.grass);
+  const dryP    = p.filter(x=>x.moisture<25).sort((a,b)=>a.moisture-b.moisture);
+  const overgrown = p.filter(x=>x.grass>4.5);
 
-  // Forecast
-  renderForecast(w);
+  const actions=[];
 
-  // Grass multi-line
+  // Action 1 — move opportunity
+  if(readyP.length){
+    const best=readyP[0];
+    actions.push({
+      type:'move',
+      ico:'🌱',
+      label:'Move herd now',
+      body:`<strong>${best.name||best.id}</strong> is at <strong>${best.grass}in</strong> — peak grazing window.${readyP.length>1?' Also ready: '+readyP.slice(1).map(x=>x.name||x.id).join(', ')+'.':''}`,
+      sub:`${readyP.length} paddock${readyP.length>1?'s':''} ready · ideal entry 2.4–3.1 in`,
+      accent:'var(--accent)',bg:'rgba(61,107,46,0.07)'
+    });
+  } else if(p.filter(x=>x.status==='grazing').length){
+    const grazing=p.find(x=>x.status==='grazing');
+    actions.push({
+      type:'move',ico:'🌱',label:'Herd in place',
+      body:`Herd currently in <strong>${grazing.name||grazing.id}</strong> at ${grazing.grass}in. No paddocks ready yet — monitor rest periods.`,
+      sub:'Check back when resting paddocks reach 2.4in',
+      accent:'var(--accent)',bg:'rgba(61,107,46,0.07)'
+    });
+  }
+
+  // Action 2 — biggest risk (dry before overgrown before long-resting)
+  if(dryP.length){
+    const driest=dryP[0];
+    actions.push({
+      type:'risk',ico:'💧',label:'Irrigation alert',
+      body:`<strong>${driest.name||driest.id}</strong> soil moisture at <strong>${driest.moisture}%</strong> — approaching stress threshold.${dryP.length>1?' Also low: '+dryP.slice(1).map(x=>x.name||x.id).join(', ')+'.':''}`,
+      sub:'Below 20% triggers root stress · irrigate or rotate before it drops further',
+      accent:'#1a5c7a',bg:'rgba(26,92,122,0.07)'
+    });
+  } else if(overgrown.length){
+    const worst=overgrown.sort((a,b)=>b.grass-a.grass)[0];
+    actions.push({
+      type:'risk',ico:'⚠️',label:'Overgrown paddock',
+      body:`<strong>${worst.name||worst.id}</strong> is at <strong>${worst.grass}in</strong> — cattle will refuse stems this tall. Quality drops fast.`,
+      sub:'Move herd here urgently or mow to prevent wasted growth',
+      accent:'var(--amber)',bg:'rgba(112,93,0,0.07)'
+    });
+  } else if(restingP.length){
+    const longest=restingP.sort((a,b)=>(b.restLeft||0)-(a.restLeft||0))[0];
+    actions.push({
+      type:'risk',ico:'🔄',label:'Rest period check',
+      body:`<strong>${restingP.length} paddock${restingP.length>1?'s are':' is'} resting</strong> — shortest grass at ${restingP[0].grass}in. Protect from early entry.`,
+      sub:'USDA target: 28–32 days rest for cool-season species',
+      accent:'var(--amber)',bg:'rgba(112,93,0,0.07)'
+    });
+  }
+
+  if(!actions.length) actions.push({
+    type:'ok',ico:'✅',label:'All clear',
+    body:'All paddocks are in good condition with adequate moisture and optimal grass heights.',
+    sub:'No urgent actions required today',
+    accent:'var(--accent)',bg:'rgba(61,107,46,0.07)'
+  });
+
+  document.getElementById('suggestionsGrid').innerHTML=actions.map(s=>`
+    <div class="sug" style="background:${s.bg};border-left:3px solid ${s.accent};border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
+      <div style="font-size:22px;line-height:1;flex-shrink:0">${s.ico}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:var(--font-display);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${s.accent};margin-bottom:4px">${s.label}</div>
+        <div class="sug-body" style="font-size:13px;line-height:1.6">${s.body}</div>
+        <div class="sug-sub" style="margin-top:4px;font-size:11px">${s.sub}</div>
+      </div>
+    </div>`).join('');
+
+  // ── Grass 14-day history chart ──────────────────────────────────────────────
   const days14=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});});
   destroyChart('grassMulti');
   const grassDS=p.slice(0,6).map((pk,i)=>{
@@ -1472,18 +1782,124 @@ function renderOverview(){
     });
     return{data,borderColor:BCOLORS[i]+'cc',backgroundColor:BCOLORS[i]+'0d',tension:0.4,fill:true,pointRadius:2,borderWidth:2,label:pk.name||pk.id};
   });
-  charts.grassMulti=new Chart(document.getElementById('grassMulti'),{type:'line',data:{labels:days14,datasets:grassDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:10},maxTicksLimit:7,autoSkip:true},grid:{color:'rgba(60,50,30,0.05)'}},y:{ticks:{color:'#9a8e7a',font:{size:10},callback:v=>v+'in'},grid:{color:'rgba(60,50,30,0.05)'},min:0,max:5}}}});
-  document.getElementById('grassLegend').innerHTML=p.slice(0,6).map((pk,i)=>`<div class="leg"><div class="lsq" style="background:${BCOLORS[i]}"></div>${pk.name||pk.id}</div>`).join('');
+  const grassMax=10;
+  charts.grassMulti=new Chart(document.getElementById('grassMulti'),{type:'line',data:{labels:days14,datasets:grassDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#9a8e7a',font:{size:10},boxWidth:10,padding:8}}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:11},maxTicksLimit:7,autoSkip:true},grid:{color:'rgba(60,50,30,0.04)'}},y:{ticks:{color:'#9a8e7a',font:{size:11},callback:v=>v+'in'},grid:{color:'rgba(60,50,30,0.06)'},min:0,max:grassMax}}}});
+  document.getElementById('grassLegend').style.display='none'; // legend now inside chart
 
-  // Weather chart
-  const histW=w.filter(x=>!x.note.includes('forecast'));
-  const wData=histW.length?histW:Array.from({length:14},()=>({date:'',temp:16,precip:0}));
-  destroyChart('weatherChart');
-  charts.weatherChart=new Chart(document.getElementById('weatherChart'),{type:'bar',data:{labels:wData.map(x=>x.date.substring(5)||''),datasets:[{type:'line',data:wData.map(x=>x.temp),borderColor:'#b5600a',backgroundColor:'rgba(181,96,10,0.05)',tension:0.4,fill:true,pointRadius:2,borderWidth:2,yAxisID:'y'},{data:wData.map(x=>x.precip),backgroundColor:'rgba(26,92,122,0.45)',borderRadius:2,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:10},maxTicksLimit:7,autoSkip:true},grid:{display:false}},y:{ticks:{color:'#9a8e7a',font:{size:10},callback:v=>v+'°F'},grid:{color:'rgba(60,50,30,0.05)'}},y1:{position:'right',ticks:{color:'#1a5c7a',font:{size:10},callback:v=>v+'in'},grid:{display:false}}}}});
+  // ── 7-day forecast chart ────────────────────────────────────────────────────
+  const rate=1.2;
+  const futureDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i+1);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});});
+  destroyChart('predChart');
+  const predDS=p.slice(0,6).map((pk,i)=>({
+    data:Array.from({length:7},(_,j)=>+(Math.min(grassMax,pk.grass+(j+1)*rate*(pk.status==='resting'?1.1:0.8))).toFixed(2)),
+    borderColor:BCOLORS[i],borderDash:[5,3],backgroundColor:BCOLORS[i]+'10',
+    tension:0.4,fill:true,pointRadius:3,borderWidth:2,label:pk.name||pk.id
+  }));
+  charts.predChart=new Chart(document.getElementById('predChart'),{type:'line',data:{labels:futureDays,datasets:predDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#9a8e7a',font:{size:10},boxWidth:10,padding:8}}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:11}},grid:{color:'rgba(60,50,30,0.04)'}},y:{ticks:{color:'#9a8e7a',font:{size:11},callback:v=>v+'in'},grid:{color:'rgba(60,50,30,0.06)'},min:0,max:grassMax}}}});
+  document.getElementById('predBadge').textContent='+'+rate.toFixed(2)+' in/day model';
 
-  // Paddock bar
+  // ── Paddock snapshot bar ────────────────────────────────────────────────────
   destroyChart('paddockBar');
-  charts.paddockBar=new Chart(document.getElementById('paddockBar'),{type:'bar',data:{labels:p.map(x=>x.id),datasets:[{data:p.map(x=>x.grass),backgroundColor:p.map(x=>(STATUS_COL[x.status]||'#888')+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#9a8e7a',font:{size:10},callback:v=>v+'in'},grid:{color:'rgba(60,50,30,0.05)'},min:0,max:5}}},plugins:[{id:'tgt',beforeDraw(ch){const{ctx,chartArea:{left,right},scales:{y}}=ch;const y6=y.getPixelForValue(2.4),y8=y.getPixelForValue(3.1);ctx.save();ctx.fillStyle='rgba(61,107,46,0.07)';ctx.fillRect(left,y8,right-left,y6-y8);ctx.strokeStyle='rgba(61,107,46,0.35)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(left,y6);ctx.lineTo(right,y6);ctx.stroke();ctx.beginPath();ctx.moveTo(left,y8);ctx.lineTo(right,y8);ctx.stroke();ctx.restore();}}]});
+  charts.paddockBar=new Chart(document.getElementById('paddockBar'),{type:'bar',data:{labels:p.map(x=>x.name||x.id),datasets:[{data:p.map(x=>x.grass),backgroundColor:p.map(x=>(STATUS_COL[x.status]||'#888')+'cc'),borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:10},maxRotation:35,minRotation:0},grid:{display:false}},y:{ticks:{color:'#9a8e7a',font:{size:11},callback:v=>v+'in'},grid:{color:'rgba(60,50,30,0.06)'},min:0,max:grassMax}}},plugins:[{id:'tgt',beforeDraw(ch){const{ctx,chartArea:{left,right},scales:{y}}=ch;const y6=y.getPixelForValue(2.4),y8=y.getPixelForValue(3.1);ctx.save();ctx.fillStyle='rgba(61,107,46,0.07)';ctx.fillRect(left,y8,right-left,y6-y8);ctx.strokeStyle='rgba(61,107,46,0.35)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(left,y6);ctx.lineTo(right,y6);ctx.stroke();ctx.beginPath();ctx.moveTo(left,y8);ctx.lineTo(right,y8);ctx.stroke();ctx.restore();}}]});
+
+  // ── Rotation readiness bar ──────────────────────────────────────────────────
+  // ── Rotation readiness — same STATUS_COL palette as snapshot, actual grass heights ──
+  const ROT_LABELS={
+    ready:  'Ready to graze',
+    grazing:'Currently grazing',
+    resting:'Resting',
+    hay:    'Hay reserve',
+    unknown:'Unknown',
+  };
+
+  destroyChart('rotChart');
+  charts.rotChart=new Chart(document.getElementById('rotChart'),{
+    type:'bar',
+    data:{
+      labels:p.map(x=>x.name||x.id),
+      datasets:[{
+        data:p.map(x=>x.grass),
+        backgroundColor:p.map(x=>(STATUS_COL[x.status]||'#888')+'cc'),
+        borderColor:p.map(x=>STATUS_COL[x.status]||'#888'),
+        borderWidth:2,
+        borderRadius:5,
+        borderSkipped:false,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:ctx=>{
+            const pk=p[ctx.dataIndex];
+            const lbl=ROT_LABELS[pk.status]||pk.status;
+            const rest=pk.restLeft>0?' · '+(pk.restLeft)+'d resting':'';
+            return lbl+' · '+pk.grass.toFixed(1)+'in'+rest;
+          }
+        }}
+      },
+      scales:{
+        x:{ticks:{color:'#9a8e7a',font:{size:10},maxRotation:35,minRotation:0},grid:{display:false}},
+        y:{
+          ticks:{color:'#9a8e7a',font:{size:11},callback:v=>v+'in'},
+          grid:{color:'rgba(60,50,30,0.06)'},
+          min:0,max:grassMax,
+        }
+      }
+    },
+    plugins:[{
+      id:'restLabel',
+      afterDraw(ch){
+        const{ctx,scales:{y}}=ch;
+        const meta=ch.getDatasetMeta(0);
+        p.forEach((pp,i)=>{
+          if(pp.status!=='resting'||!pp.restLeft) return;
+          const bar=meta.data[i]; if(!bar) return;
+          const barTop=bar.y, barBot=y.getPixelForValue(0);
+          if(barBot-barTop<16) return;
+          ctx.save();
+          ctx.fillStyle='rgba(255,255,255,0.88)';
+          ctx.font='bold 9px IBM Plex Mono,monospace';
+          ctx.textAlign='center'; ctx.textBaseline='top';
+          ctx.fillText(pp.restLeft+'d',bar.x,barTop+4);
+          ctx.restore();
+        });
+      }
+    },{
+      id:'tgt',
+      beforeDraw(ch){
+        const{ctx,chartArea:{left,right},scales:{y}}=ch;
+        const y6=y.getPixelForValue(2.4),y8=y.getPixelForValue(3.1);
+        ctx.save();
+        ctx.fillStyle='rgba(61,107,46,0.07)';
+        ctx.fillRect(left,y8,right-left,y6-y8);
+        ctx.strokeStyle='rgba(61,107,46,0.35)';
+        ctx.lineWidth=1; ctx.setLineDash([4,3]);
+        ctx.beginPath();ctx.moveTo(left,y6);ctx.lineTo(right,y6);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(left,y8);ctx.lineTo(right,y8);ctx.stroke();
+        ctx.restore();
+      }
+    }]
+  });
+
+  // ── Colour key (uses same STATUS_COL) ───────────────────────────────────────
+  const statuses=[...new Set(p.map(pp=>pp.status))];
+  const keyEl=document.getElementById('rotKey');
+  if(keyEl){
+    keyEl.innerHTML=statuses.map(s=>{
+      const col=STATUS_COL[s]||'#888';
+      const lbl=ROT_LABELS[s]||s;
+      const count=p.filter(pp=>pp.status===s).length;
+      return`<div style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${col}cc;border:1.5px solid ${col};flex-shrink:0"></span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text)">${lbl}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">(${count})</span>
+      </div>`;
+    }).join('')+
+    `<div style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--muted)">Resting bars show days remaining · shaded band = optimal 2.4–3.1in</div>`;
+  }
 }
 
 function renderForecast(w){
@@ -1510,16 +1926,280 @@ function renderPaddocks(){
   document.getElementById('paddockTimestamp').textContent=p.find(x=>x.timestamp)?.timestamp||new Date().toLocaleString();
   document.getElementById('paddockTbody').innerHTML=p.map(pp=>{
     const col=STATUS_COL[pp.status]||'#888';
-    const gPct=Math.round(Math.min(100,(pp.grass||0)/5*100));
+    const gPct=Math.round(Math.min(100,(pp.grass||0)/10*100));
     const mPct=Math.round(Math.min(100,pp.moisture/60*100));
     return`<tr><td style="font-weight:500;font-size:13px;color:${col}">${pp.id}</td><td>${pp.name}</td><td style="color:var(--muted)">${pp.acres||'—'} ac</td><td>${(pp.grass||0).toFixed(1)} in</td><td><div class="mbar"><div class="bar-bg"><div class="bar-fill" style="width:${gPct}%;background:${col}"></div></div><span style="font-size:9px;color:var(--muted)">${gPct}%</span></div></td><td>${(pp.moisture||0).toFixed(0)}%</td><td><div class="mbar"><div class="bar-bg"><div class="bar-fill" style="width:${mPct}%;background:#1a5c7a"></div></div><span style="font-size:9px;color:var(--muted)">${mPct}%</span></div></td><td>${pp.temp?(pp.temp.toFixed(0)+'°F'):'—'}</td><td style="color:var(--muted)">${pp.breed||'—'}</td><td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${col};margin-right:5px"></span><span style="font-size:10px;color:${col}">${STATUS_LBL[pp.status]||pp.status}</span></td></tr>`;
   }).join('');
-  const rate=1.2;
-  const futureDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i+1);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});});
-  destroyChart('predChart');
-  charts.predChart=new Chart(document.getElementById('predChart'),{type:'line',data:{labels:futureDays,datasets:p.slice(0,5).map((pk,i)=>({data:Array.from({length:7},(_,j)=>+(Math.min(5,pk.grass+(j+1)*rate*(pk.status==='resting'?1.1:0.8))).toFixed(2)),borderColor:BCOLORS[i],borderDash:[5,3],backgroundColor:BCOLORS[i]+'08',tension:0.4,fill:true,pointRadius:2,borderWidth:2,label:pk.name||pk.id}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#9a8e7a',font:{size:10},boxWidth:10,padding:7}}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:10}},grid:{color:'rgba(60,50,30,0.05)'}},y:{ticks:{color:'#9a8e7a',font:{size:10},callback:v=>v+'in'},grid:{color:'rgba(60,50,30,0.05)'},min:0,max:5}}}});
-  destroyChart('rotChart');
-  charts.rotChart=new Chart(document.getElementById('rotChart'),{type:'bar',data:{labels:p.map(x=>x.id),datasets:[{data:p.map(x=>x.status==='resting'?x.restLeft:0),backgroundColor:p.map(x=>x.status==='resting'?'rgba(181,96,10,0.7)':'rgba(61,107,46,0.2)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9a8e7a',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#9a8e7a',font:{size:10},callback:v=>v+' d'},grid:{color:'rgba(60,50,30,0.05)'},min:0,max:35,title:{display:true,text:'Rest days remaining (target: 30)',color:'#9a8e7a',font:{size:9}}}}},plugins:[{id:'rl',afterDraw(ch){const{ctx,scales:{y}}=ch;const meta=ch.getDatasetMeta(0);p.forEach((pp,i)=>{if(pp.status!=='resting'){const bar=meta.data[i];const col=STATUS_COL[pp.status]||'#888';ctx.fillStyle=col;ctx.font='bold 8px IBM Plex Mono,monospace';ctx.textAlign='center';ctx.fillText(pp.status.toUpperCase(),bar.x,y.getPixelForValue(1.2));}});}}]});
+
+  renderMoveMap(p);
+}
+
+function paddockFillColor(grass){
+  if(grass<1.5)  return{fill:'rgba(139,28,28,0.82)', stroke:'#e84040', strokeW:2,   label:'Low'};
+  if(grass<2.5)  return{fill:'rgba(107,58,10,0.82)', stroke:'#d4720a', strokeW:1.5, label:'Short'};
+  if(grass<3.5)  return{fill:'rgba(101,82,8,0.82)',  stroke:'#c9a900', strokeW:1.5, label:'Growing'};
+  if(grass<=6)   return{fill:'rgba(28,74,22,0.88)',  stroke:'#4ade80', strokeW:2,   label:'Optimal'};
+  return          {fill:'rgba(10,58,80,0.88)',        stroke:'#38bdf8', strokeW:2,   label:'Tall'};
+}
+
+function renderMoveMap(p){
+  const canvas=document.getElementById('moveMapCanvas');
+  if(!canvas||!p.length) return;
+
+  const W=Math.max(400, canvas.parentElement.clientWidth||600);
+  const H=Math.round(W*0.62);
+  canvas.width=W; canvas.height=H;
+  canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+
+  // ── Background: earthy field colour ──────────────────────────────────────────
+  ctx.fillStyle='#2a3020'; ctx.fillRect(0,0,W,H);
+  // Subtle texture stripes
+  ctx.save();
+  for(let y=0;y<H;y+=6){
+    ctx.fillStyle=y%12===0?'rgba(255,255,255,0.012)':'rgba(0,0,0,0.015)';
+    ctx.fillRect(0,y,W,3);
+  }
+  ctx.restore();
+
+  // ── Tile paddocks as irregular quads filling the canvas ───────────────────────
+  // Strategy: use a grid subdivision then jitter interior vertices so each
+  // cell looks like a real field boundary — cells share edges exactly.
+  const n=p.length;
+  const cols=Math.ceil(Math.sqrt(n*1.4));       // slightly wider than tall
+  const rows=Math.ceil(n/cols);
+  const PAD=18;                                  // border margin
+  const IW=W-PAD*2, IH=H-PAD*2;
+
+  // Build a cols+1 × rows+1 grid of jittered vertices
+  // Base grid + noise per interior point (shared by adjacent cells → no gaps)
+  const jx=(W/cols)*0.18, jy=(H/rows)*0.18;
+  // Seeded pseudo-random so it's stable across re-renders
+  function seededRng(seed){
+    let s=seed^0xdeadbeef;
+    return()=>{s=Math.imul(s^(s>>>17),0x45d9f3b);s=Math.imul(s^(s>>>13),0x9b2e1);return((s^(s>>>16))>>>0)/0xffffffff;};
+  }
+  const rng=seededRng(n*1000+p.reduce((a,pk)=>a+(pk.name||'').charCodeAt(0)||0,0));
+
+  // Grid[row][col] = {x,y}
+  const grid=[];
+  for(let r=0;r<=rows;r++){
+    grid[r]=[];
+    for(let c=0;c<=cols;c++){
+      const bx=PAD+c*(IW/cols), by=PAD+r*(IH/rows);
+      const dx=(c>0&&c<cols)?(rng()-0.5)*2*jx:0;
+      const dy=(r>0&&r<rows)?(rng()-0.5)*2*jy:0;
+      grid[r][c]={x:bx+dx, y:by+dy};
+    }
+  }
+
+  // Each paddock i → grid cell (row, col)
+  const cells=p.map((pk,i)=>{
+    const col=i%cols, row=Math.floor(i/cols);
+    const tl=grid[row][col],   tr=grid[row][col+1];
+    const bl=grid[row+1][col], br=grid[row+1][col+1];
+    const cx=(tl.x+tr.x+bl.x+br.x)/4;
+    const cy=(tl.y+tr.y+bl.y+br.y)/4;
+    return{...pk, i, col, row, tl, tr, bl, br, cx, cy,
+      pts:[tl,tr,br,bl]};  // clockwise quad
+  });
+
+  // ── Compute recommended moves ─────────────────────────────────────────────────
+  const sources=cells.filter(n=>n.grass<2.5||n.status==='grazing').sort((a,b)=>a.grass-b.grass);
+  const targets=cells.filter(n=>n.grass>=3.5).sort((a,b)=>b.grass-a.grass);
+  const usedTargets=new Set();
+  const moves=[];
+  sources.forEach(src=>{
+    const best=targets
+      .filter(t=>!usedTargets.has(t.i)&&t.i!==src.i)
+      .sort((a,b)=>Math.hypot(a.cx-src.cx,a.cy-src.cy)-Math.hypot(b.cx-src.cx,b.cy-src.cy))[0];
+    if(best){usedTargets.add(best.i);moves.push({from:src,to:best});}
+  });
+
+  // ── Draw field polygons ───────────────────────────────────────────────────────
+  cells.forEach(cell=>{
+    if(!cell.pts) return;
+    const {fill,stroke,strokeW}=paddockFillColor(cell.grass);
+    const isFrom=moves.some(m=>m.from.i===cell.i);
+    const isTo=moves.some(m=>m.to.i===cell.i);
+
+    // Field body
+    ctx.beginPath();
+    cell.pts.forEach((pt,j)=>j===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.closePath();
+    ctx.fillStyle=fill; ctx.fill();
+
+    // Fence border — thicker + glow on move targets/sources
+    ctx.save();
+    if(isTo){ctx.shadowColor='rgba(74,222,128,0.6)';ctx.shadowBlur=10;}
+    if(isFrom){ctx.shadowColor='rgba(232,64,64,0.5)';ctx.shadowBlur=10;}
+    ctx.strokeStyle=stroke; ctx.lineWidth=isFrom||isTo?strokeW+1:strokeW;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    cell.pts.forEach((pt,j)=>j===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
+
+    // Inner fence detail — thin offset inset line
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+    const inset=5;
+    const inPts=cell.pts.map(pt=>({x:pt.x+(cell.cx-pt.x)*inset/Math.max(1,Math.hypot(cell.cx-pt.x,cell.cy-pt.y)),y:pt.y+(cell.cy-pt.y)*inset/Math.max(1,Math.hypot(cell.cx-pt.x,cell.cy-pt.y))}));
+    ctx.beginPath();
+    inPts.forEach((pt,j)=>j===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
+
+    // Gate mark on the busiest shared edge (bottom edge — nearest neighbour)
+    const gateEdge=[cell.pts[2],cell.pts[3]]; // bottom edge
+    const gMid={x:(gateEdge[0].x+gateEdge[1].x)/2, y:(gateEdge[0].y+gateEdge[1].y)/2};
+    const gLen=Math.hypot(gateEdge[1].x-gateEdge[0].x,gateEdge[1].y-gateEdge[0].y);
+    if(gLen>30){
+      ctx.save();
+      const ang=Math.atan2(gateEdge[1].y-gateEdge[0].y,gateEdge[1].x-gateEdge[0].x);
+      ctx.translate(gMid.x,gMid.y); ctx.rotate(ang);
+      // Gate — two short posts + gap
+      ctx.strokeStyle='rgba(200,160,80,0.7)'; ctx.lineWidth=2.5; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(-4,0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4,0);  ctx.lineTo(10,0);  ctx.stroke();
+      ctx.fillStyle='rgba(200,160,80,0.7)';
+      ctx.beginPath(); ctx.arc(-10,0,2.5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(10,0,2.5,0,Math.PI*2);  ctx.fill();
+      ctx.restore();
+    }
+
+    // Grass texture dots (subtle)
+    ctx.save();
+    const dotRng=seededRng(cell.i*77+13);
+    const fieldW=Math.abs(cell.tr.x-cell.tl.x), fieldH=Math.abs(cell.bl.y-cell.tl.y);
+    const dotCount=Math.floor(fieldW*fieldH/800);
+    ctx.fillStyle='rgba(255,255,255,0.07)';
+    for(let d=0;d<Math.min(dotCount,18);d++){
+      const dx=cell.tl.x+dotRng()*fieldW*0.85+fieldW*0.075;
+      const dy=cell.tl.y+dotRng()*fieldH*0.85+fieldH*0.075;
+      ctx.beginPath(); ctx.arc(dx,dy,1.2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+
+    // ── Labels ────────────────────────────────────────────────────────────────
+    const fw=Math.abs(cell.tr.x-cell.tl.x);
+    const fh=Math.abs(cell.bl.y-cell.tl.y);
+    const fontSize=Math.max(9,Math.min(13,fw/9));
+
+    // Paddock name
+    ctx.save();
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.font=`700 ${fontSize}px 'IBM Plex Mono',monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const name=(cell.name||cell.id||'');
+    const words=name.split(' ');
+    if(words.length>1&&fw<120){
+      ctx.fillText(words[0],cell.cx,cell.cy-fontSize*0.7);
+      ctx.fillText(words.slice(1).join(' '),cell.cx,cell.cy+fontSize*0.4);
+    } else {
+      ctx.fillText(name,cell.cx,cell.cy-fontSize*0.5);
+    }
+    ctx.restore();
+
+    // Grass height badge
+    ctx.save();
+    const {stroke:sc}=paddockFillColor(cell.grass);
+    const badgeY=cell.cy+(words.length>1&&fw<120?fontSize*1.2:fontSize*0.6);
+    ctx.fillStyle='rgba(0,0,0,0.45)';
+    const bw=42, bh=16, br=4;
+    ctx.beginPath();
+    ctx.roundRect(cell.cx-bw/2, badgeY, bw, bh, br);
+    ctx.fill();
+    ctx.fillStyle=sc;
+    ctx.font=`600 ${Math.max(9,fontSize-1)}px 'IBM Plex Mono',monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(cell.grass.toFixed(1)+'in', cell.cx, badgeY+bh/2);
+    ctx.restore();
+
+    // Status dot (top-left corner of field)
+    const dotX=cell.tl.x+(cell.cx-cell.tl.x)*0.25;
+    const dotY=cell.tl.y+(cell.cy-cell.tl.y)*0.25;
+    ctx.beginPath(); ctx.arc(dotX,dotY,4,0,Math.PI*2);
+    ctx.fillStyle=stroke; ctx.fill();
+  });
+
+  // ── Draw move arrows (centroid to centroid, over fields) ─────────────────────
+  function drawArrow(x1,y1,x2,y2){
+    const angle=Math.atan2(y2-y1,x2-x1);
+    const len=Math.hypot(x2-x1,y2-y1);
+    const pad=22;
+    const sx=x1+Math.cos(angle)*pad, sy=y1+Math.sin(angle)*pad;
+    const ex=x2-Math.cos(angle)*pad, ey=y2-Math.sin(angle)*pad;
+    ctx.save();
+    // Shadow glow
+    ctx.shadowColor='rgba(255,210,50,0.7)'; ctx.shadowBlur=12;
+    // Shaft
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey);
+    ctx.strokeStyle='rgba(255,210,50,1)'; ctx.lineWidth=3;
+    ctx.setLineDash([]); ctx.stroke();
+    // Arrowhead
+    const hlen=14;
+    ctx.beginPath();
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-hlen*Math.cos(angle-0.38),ey-hlen*Math.sin(angle-0.38));
+    ctx.lineTo(ex-hlen*Math.cos(angle+0.38),ey-hlen*Math.sin(angle+0.38));
+    ctx.closePath();
+    ctx.fillStyle='rgba(255,210,50,1)'; ctx.fill();
+    // Distance label mid-arrow
+    const mx=(sx+ex)/2, my=(sy+ey)/2;
+    ctx.shadowBlur=0;
+    const distM=Math.round(len);
+    ctx.fillStyle='rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.roundRect(mx-18,my-9,36,18,5); ctx.fill();
+    ctx.fillStyle='rgba(255,210,50,1)';
+    ctx.font='bold 9px IBM Plex Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('MOVE',mx,my);
+    ctx.restore();
+  }
+
+  moves.forEach(m=>drawArrow(m.from.cx,m.from.cy,m.to.cx,m.to.cy));
+
+  // ── Compass rose (top-right) ──────────────────────────────────────────────────
+  const cx2=W-32, cy2=32;
+  ['N','E','S','W'].forEach((dir,i)=>{
+    const a=i*Math.PI/2-Math.PI/2;
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.font='bold 9px IBM Plex Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(dir, cx2+Math.cos(a)*16, cy2+Math.sin(a)*16);
+  });
+  ctx.beginPath(); ctx.arc(cx2,cy2,10,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx2,cy2-10); ctx.lineTo(cx2-5,cy2+6); ctx.lineTo(cx2+5,cy2+6); ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
+
+  // ── Move suggestion cards ─────────────────────────────────────────────────────
+  document.getElementById('moveBadge').textContent=
+    moves.length?moves.length+' move'+(moves.length>1?'s':'')+' suggested':'All clear';
+
+  const sugEl=document.getElementById('moveSuggestions');
+  if(!moves.length){
+    sugEl.innerHTML=`<div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);padding:10px 0">All paddocks are in good shape — no urgent moves needed.</div>`;
+    return;
+  }
+  sugEl.innerHTML=moves.map((m,idx)=>{
+    const priority=idx===0?'🔴 Move now':'🟡 Move soon';
+    const gain=(m.to.grass-m.from.grass).toFixed(1);
+    return`<div style="background:rgba(255,255,255,0.04);border-left:3px solid rgba(255,210,50,0.7);border-radius:8px;padding:10px 12px">
+      <div style="font-family:var(--font-display);font-size:10px;font-weight:700;color:rgba(255,210,50,0.9);margin-bottom:4px">${priority}</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.85);line-height:1.7">
+        <span style="color:#f87171">${m.from.name||m.from.id}</span>
+        <span style="color:rgba(255,255,255,0.35)"> → </span>
+        <span style="color:#4ade80">${m.to.name||m.to.id}</span>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px">
+        ${m.from.grass.toFixed(1)}in → ${m.to.grass.toFixed(1)}in &nbsp;·&nbsp; +${gain}in gain
+        ${m.from.acres?'&nbsp;·&nbsp;'+m.from.acres+'ac':''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function bcsBar(bcs){
@@ -1600,6 +2280,233 @@ function filterByStatus(btn,val){
 
 // Auto-load on page open
 loadFromBackend();
+
+// ════════════════════════════════════════════════════════════════
+// OSM TILE MAP — fetch + stitch tiles into field map background
+// ════════════════════════════════════════════════════════════════
+
+function showOsmPanel(){
+  const p = document.getElementById('osmPanel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  if(p.style.display === 'block') document.getElementById('osmAddress').focus();
+}
+
+async function loadOsmMap(){
+  const address = document.getElementById('osmAddress').value.trim();
+  const zoom    = parseInt(document.getElementById('osmZoom').value) || 16;
+  const stat    = document.getElementById('osmStatus');
+  if(!address){ stat.textContent = 'Enter an address'; stat.style.color = 'var(--amber)'; return; }
+  stat.textContent = '⏳ Geocoding…'; stat.style.color = 'var(--muted)';
+  try{
+    // Nominatim geocode (free, no key)
+    const geoResp = await fetch(
+      'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address),
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'GreenPastures/1.0' } }
+    );
+    const geoData = await geoResp.json();
+    if(!geoData.length){ stat.textContent = 'Address not found'; stat.style.color = 'var(--red)'; return; }
+    const lat  = parseFloat(geoData[0].lat);
+    const lon  = parseFloat(geoData[0].lon);
+    const name = geoData[0].display_name.split(',').slice(0,2).join(',');
+    stat.textContent = '⏳ Loading tiles for ' + name + '…'; stat.style.color = 'var(--muted)';
+    await fmLoadOsmTiles(lat, lon, zoom);
+    stat.textContent = '✓ Map loaded · ' + lat.toFixed(4) + ', ' + lon.toFixed(4);
+    stat.style.color = 'var(--accent)';
+    document.getElementById('osmPanel').style.display = 'none';
+    document.getElementById('fmHint').textContent = 'Map loaded — draw paddock polygons on top';
+  }catch(e){
+    stat.textContent = '✗ ' + e.message; stat.style.color = 'var(--red)';
+  }
+}
+
+function osmLatLonToTile(lat, lon, zoom){
+  const n = Math.pow(2, zoom);
+  const x = Math.floor((lon + 180) / 360 * n);
+  const latRad = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad)) / Math.PI) / 2 * n);
+  return { x, y };
+}
+
+async function fmLoadOsmTiles(lat, lon, zoom){
+  const TILE = 256, GRID = 3, SIZE = TILE * GRID;
+  const { x, y } = osmLatLonToTile(lat, lon, zoom);
+  const offscreen = document.createElement('canvas');
+  offscreen.width = SIZE; offscreen.height = SIZE;
+  const ctx = offscreen.getContext('2d');
+  ctx.fillStyle = '#f0ebe3'; ctx.fillRect(0, 0, SIZE, SIZE);
+
+  const servers = ['a','b','c'];
+  const loads = [];
+  for(let dy = 0; dy < GRID; dy++){
+    for(let dx = 0; dx < GRID; dx++){
+      const tx = x - 1 + dx, ty = y - 1 + dy;
+      const s  = servers[(tx + ty) % 3];
+      const url = `https://${s}.tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+      const px = dx * TILE, py = dy * TILE;
+      loads.push(new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload  = () => { ctx.drawImage(img, px, py); resolve(); };
+        img.onerror = () => resolve(); // skip failed tiles gracefully
+        img.src = url;
+      }));
+    }
+  }
+  await Promise.all(loads);
+
+  // Red crosshair pin at exact coordinates
+  const cx = SIZE / 2, cy = SIZE / 2;
+  ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI*2); ctx.fillStyle = '#e84040'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI*2); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-16,cy); ctx.lineTo(cx+16,cy); ctx.moveTo(cx,cy-16); ctx.lineTo(cx,cy+16);
+  ctx.strokeStyle = 'rgba(232,64,64,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  fmSetImageFromCanvas(offscreen);
+}
+
+function fmSetImageFromCanvas(srcCanvas){
+  const img = document.getElementById('fmBg');
+  img.onload = () => {
+    FM.imageLoaded = true;
+    FM.natW = img.naturalWidth; FM.natH = img.naturalHeight;
+    img.style.display = 'block';
+    document.getElementById('fmUploadPrompt').classList.add('hidden');
+    fmResetView();
+  };
+  img.src = srcCanvas.toDataURL('image/png');
+}
+
+// ════════════════════════════════════════════════════════════════
+// PADDOCK DATA ENTRY — manual form + spreadsheet import
+// ════════════════════════════════════════════════════════════════
+
+function fmShowEntry(mode){
+  document.getElementById('fmEntryManual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('fmEntrySheet').style.display  = mode === 'sheet'  ? 'block' : 'none';
+  const mb = document.getElementById('fmEntryManualBtn');
+  const sb = document.getElementById('fmEntrySheetBtn');
+  mb.style.background = mode === 'manual' ? 'var(--primary)' : 'none';
+  mb.style.color      = mode === 'manual' ? '#fff' : 'var(--muted)';
+  sb.style.background = mode === 'sheet'  ? 'var(--primary)' : 'none';
+  sb.style.color      = mode === 'sheet'  ? '#fff' : 'var(--muted)';
+}
+
+function fmApplyManualEntry(){
+  const name   = document.getElementById('fmEntryName').value.trim();
+  const errEl  = document.getElementById('fmEntryErr');
+  if(!name){ errEl.textContent = 'Paddock name is required.'; errEl.style.display = 'block'; return; }
+  const pk = FM.paddocks.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if(!pk){
+    errEl.textContent = `No drawn paddock named "${name}". Draw it first, then apply data.`;
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+
+  const grass      = parseFloat(document.getElementById('fmEntryGrass').value)      || pk.grass      || 0;
+  const moisture   = parseFloat(document.getElementById('fmEntryMoisture').value)   || pk.moisture   || 0;
+  const acres      = parseFloat(document.getElementById('fmEntryAcres').value)      || pk.acres      || 0;
+  const daysRested = parseInt(document.getElementById('fmEntryDaysRested').value)   || pk.daysRested || 0;
+  const status     = document.getElementById('fmEntryStatus').value || pk.status;
+  const breed      = document.getElementById('fmEntryBreed').value.trim() || pk.breed || '';
+
+  // Update FM polygon
+  pk.status = status; pk.acres = acres; pk.breed = breed; pk.daysRested = daysRested;
+  pk.grass = grass; pk.moisture = moisture;
+
+  // Push into STATE.paddocks so render engine and ML see it
+  const sp = STATE.paddocks.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if(sp){
+    sp.grass = grass; sp.moisture = moisture; sp.acres = acres;
+    sp.status = status; sp.breed = breed; sp.daysRested = daysRested;
+  } else {
+    STATE.paddocks.push({
+      id: name.substring(0,1).toUpperCase(), name, grass, moisture, temp:0,
+      acres, status, breed, daysRested, restLeft:0, daysSince:0, pgr:0,
+      timestamp: new Date().toISOString(), soilDrainage:2, grassSpecies:0,
+    });
+    STATE.loaded = true;
+  }
+
+  fmDraw(); fmRefreshTables(); fmRefreshStats();
+  renderAll();
+
+  // Clear form
+  ['fmEntryName','fmEntryGrass','fmEntryMoisture','fmEntryAcres','fmEntryDaysRested','fmEntryBreed']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fmEntryStatus').value = 'ready';
+
+  const s = document.getElementById('importStatus');
+  s.textContent = '✓ Data applied to "' + pk.name + '"';
+  s.style.color = 'var(--accent)';
+}
+
+async function fmImportSheet(input){
+  const file = input.files[0]; if(!file) return;
+  const stat = document.getElementById('fmSheetStatus');
+  stat.textContent = '⏳ Parsing…'; stat.style.color = 'var(--muted)';
+  try{
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+    if(!rows.length){ stat.textContent = 'No rows found.'; stat.style.color = 'var(--red)'; return; }
+
+    const aliases = {
+      name:       ['name','paddock','paddock_name'],
+      grass:      ['grass','grass_height','grass_height_in','height'],
+      moisture:   ['moisture','soil_moisture','moisture_pct','soil_moisture_pct'],
+      acres:      ['acres','area','area_ac'],
+      daysRested: ['days_rested','daysrested','rest','days rested'],
+      status:     ['status'],
+      breed:      ['breed','assigned_breed'],
+    };
+    function pick(row, keys){
+      const lrow = {};
+      for(const k of Object.keys(row)) lrow[k.toLowerCase().trim()] = row[k];
+      for(const k of keys){ const v = lrow[k.toLowerCase()]; if(v !== undefined && String(v).trim() !== '') return String(v).trim(); }
+      return '';
+    }
+
+    let matched = 0, added = 0;
+    rows.forEach(row => {
+      const name = pick(row, aliases.name); if(!name) return;
+      const grass      = parseFloat(pick(row, aliases.grass))      || 0;
+      const moisture   = parseFloat(pick(row, aliases.moisture))   || 0;
+      const acres      = parseFloat(pick(row, aliases.acres))      || 0;
+      const daysRested = parseInt(pick(row, aliases.daysRested))   || 0;
+      const status     = (pick(row, aliases.status) || 'ready').toLowerCase();
+      const breed      = pick(row, aliases.breed) || '';
+
+      // Update FM polygon if it exists
+      const pk = FM.paddocks.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if(pk){ pk.status = status; pk.acres = acres; pk.breed = breed; pk.daysRested = daysRested; pk.grass = grass; pk.moisture = moisture; matched++; }
+
+      // Update or add to STATE.paddocks
+      const sp = STATE.paddocks.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if(sp){
+        sp.grass = grass; sp.moisture = moisture; sp.acres = acres;
+        sp.status = status; sp.breed = breed; sp.daysRested = daysRested;
+      } else {
+        STATE.paddocks.push({
+          id: name.substring(0,1).toUpperCase(), name, grass, moisture, temp:0,
+          acres, status, breed, daysRested, restLeft:0, daysSince:0, pgr:0,
+          timestamp: new Date().toISOString(), soilDrainage:2, grassSpecies:0,
+        });
+        added++;
+      }
+    });
+
+    STATE.loaded = true;
+    fmDraw(); fmRefreshTables(); fmRefreshStats();
+    renderAll();
+    stat.textContent = `✓ ${matched} updated, ${added} new`; stat.style.color = 'var(--accent)';
+    const s = document.getElementById('importStatus');
+    s.textContent = `✓ Spreadsheet imported — ${matched + added} paddocks`;
+    s.style.color = 'var(--accent)';
+    input.value = '';
+  }catch(e){
+    stat.textContent = '✗ ' + e.message; stat.style.color = 'var(--red)';
+  }
+}
 
 // ════════════════════════════════════════════════════════════════
 // FIELD MAP ENGINE
