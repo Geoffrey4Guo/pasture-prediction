@@ -1,0 +1,42 @@
+SheetJS (spreadsheet parsing)
+
+Docs: https://docs.sheetjs.com
+sheet_to_json options: https://docs.sheetjs.com/docs/api/utilities/array#array-output
+Handling dates: https://docs.sheetjs.com/docs/csf/features/dates
+
+Chart.js (all the charts)
+
+Docs: https://www.chartjs.org/docs/latest
+Bar chart options: https://www.chartjs.org/docs/latest/charts/bar.html
+Custom plugins (the target band, status labels): https://www.chartjs.org/docs/latest/developers/plugins.html
+
+OpenWeatherMap
+
+API docs: https://open-meteo.com/en/docs
+All available variables: https://open-meteo.com/en/docs#current
+
+Nominatim (geocoding for weather + OSM map)
+
+Usage policy: https://operations.osmfoundation.org/policies/nominatim
+API reference: https://nominatim.org/release-docs/latest/api/Search
+
+OpenStreetMap tiles (field map background)
+
+Tile usage policy: https://operations.osmfoundation.org/policies/tiles
+Tile URL format: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+
+FastAPI (backend)
+
+Docs: https://fastapi.tiangolo.com
+SQLModel (ORM used in models.py): https://sqlmodel.tiangolo.com
+httpx (async HTTP for weather proxy): https://www.python-httpx.org
+
+Canvas API (movement map polygons)
+
+MDN reference: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API
+roundRect: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/roundRect
+
+General debugging
+
+Browser DevTools network tab (see exactly what fetch calls return): https://developer.chrome.com/docs/devtools/network
+XLSX column name issues are almost always solvable by pasting your headers into the SheetJS playground: https://sheetjs.com/demo/table
